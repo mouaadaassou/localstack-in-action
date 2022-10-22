@@ -1,13 +1,13 @@
 # Localstack with Docker:
 
 ## Introduction:
-## Staring Localstack:
+## Starting Localstack:
 You can use localstack in many ways - install its binary script that starts a docker container, and set all the infrastructure needed, or using docker CLI, or docker-compose, [and other options](https://docs.localstack.cloud/get-started/)
 
 In our Lab we will use docker-compose to lunch localstack, you can use the [docker-compose associated with tha lab](./docker/docker-compose.yaml).
 
 ## Scenario:
-In This Lab, We will create an SNS that has an SQS subscribed to it, and a Lambda that starts listens on SQS, and formats a document and upload it to an S3. the lab will use terraform to create all these resources on both environments - local, and on AWS.
+In This Lab, We will create an SNS that has an SQS subscribed to it, and a Lambda that starts listens on that SQS, and then process the message and upload it to an S3. the lab will use terraform to create all these resources on both environments - local - using localstack, and on AWS.
 
 ![SNS-SQS-Lambda-S3-Scenario](./img/scenario.png)
 
