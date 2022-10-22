@@ -7,29 +7,15 @@ provider "aws" {
   skip_requesting_account_id  = true
 
   endpoints {
-    apigateway     = "http://localhost:4566"
-    apigatewayv2   = "http://localhost:4566"
-    cloudformation = "http://localhost:4566"
-    cloudwatch     = "http://localhost:4566"
-    dynamodb       = "http://localhost:4566"
-    ec2            = "http://localhost:4566"
-    es             = "http://localhost:4566"
-    elasticache    = "http://localhost:4566"
-    firehose       = "http://localhost:4566"
     iam            = "http://localhost:4566"
+    sts            = "http://localhost:4566"
+    firehose       = "http://localhost:4566"
     kinesis        = "http://localhost:4566"
     lambda         = "http://localhost:4566"
-    rds            = "http://localhost:4566"
-    redshift       = "http://localhost:4566"
-    route53        = "http://localhost:4566"
     s3             = "http://s3.localhost.localstack.cloud:4566"
-    secretsmanager = "http://localhost:4566"
-    ses            = "http://localhost:4566"
     sns            = "http://localhost:4566"
     sqs            = "http://localhost:4566"
-    ssm            = "http://localhost:4566"
     stepfunctions  = "http://localhost:4566"
-    sts            = "http://localhost:4566"
   }
 
 }
@@ -59,6 +45,36 @@ resource "aws_sns_topic" "localstack_sns-fifo" {
   })
 }
 
+resource "aws_sns_topic_policy" "allow-everyone-to-publish" {
+  arn    = aws_sns_topic.localstack_sns-fifo.arn
+  policy = data.aws_iam_policy_document.allow-everyone-to-publish.json
+}
+
+resource "aws_sqs_queue" "localstack-sqs-fifo" {
+  name = "localstack-sqs.fifo"
+  delay_seconds = 0
+  message_retention_seconds = 1209600 # 14 days
+  visibility_timeout_seconds = 900 # 15 mins
+  fifo_queue = true
+  content_based_deduplication = false
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.localstack-sqs-dead-letter-fifo.arn
+    maxReceiveCount     = 3
+  })
+}
+
+resource "aws_sqs_queue" "localstack-sqs-dead-letter-fifo" {
+  name = "localstack-sqs-dead-letter.fifo"
+  fifo_queue = true
+}
+resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
+  topic_arn = aws_sns_topic.localstack_sns-fifo.arn
+  protocol  = "sqs"
+  endpoint  = aws_sqs_queue.localstack-sqs-fifo.arn
+}
+
+
 resource "aws_s3_bucket" "localstack_bucket" {
   bucket = "localstack-bucket"
 }
@@ -84,6 +100,20 @@ resource "aws_s3_bucket_lifecycle_configuration" "localstack-bucket-standard-to-
     transition {
       storage_class = "GLACIER"
       days = 90
+    }
+  }
+}
+
+data "aws_iam_policy_document" "allow-everyone-to-publish" {
+  version = "2012-10-17"
+  statement {
+    sid = "allowEveryoneToPublish"
+    effect = "Allow"
+    actions = ["sns:Publish*"]
+    resources = [aws_sns_topic.localstack_sns-fifo.arn]
+    principals {
+      identifiers = ["*"]
+      type        = "AWS"
     }
   }
 }

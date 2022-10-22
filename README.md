@@ -53,3 +53,23 @@ provider "aws" {
 }
 ```
 
+### Creating SNS:
+
+##### Testing the SNS using AWS CLI:
+```
+# To avoid setting the endpoint-url everytime...
+alias stck='aws --endpoint-url=http://localhost:4566'
+
+# Publishing some messages to SNS
+stck sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack_sns.fifo --message-deduplication-id '2' --message-group 'localstack' --message 'two-message'
+```
+
+##### Testing SQS Subscription to SNS:
+```
+# first we can list all queues, to copy the queue-url of our SQS
+stck sqs list-queues
+
+# now, we can receive the message previously published to the SNS
+stck sqs receive-message --queue-url queue-url-from-previous-command
+```
+
