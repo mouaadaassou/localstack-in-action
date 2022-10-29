@@ -21,15 +21,10 @@ as we are using the free localstack.
 the minimalist docker-compose.yaml [can be found here](./docker/docker-compose.yaml), and in order to lunch the service,
 just execute the fol<lowing command - I am running it in the background (-d parameter)
 ```bash
-docker-compose up -d
+docker compose -f docker/docker-compose.yaml up -d
 ```
 
-Till now, we have set up the Localstack, now we will start creating our Infrastructure components, and we will start by the SNS:
-```bash
-aws sns create-topic --topic-name localstack-lab-sns
-```
-
-## LocalStack with Terraform:
+## LocalStack Lab:
 ### Scenario:
 In This Lab, We will create an SNS that has an SQS subscribed to it, and a Lambda that starts listens on that SQS, and then process the message and upload it to an S3. 
 the lab will use AWS CLI to provision the infrastructure as a first option, then, we will try to do the same using terraform to create all these resources on both environments - local - using localstack, and on AWS.
