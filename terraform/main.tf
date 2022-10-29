@@ -32,7 +32,7 @@ resource "aws_sns_topic" "localstack_sns-fifo" {
     defaultHealthyRetryPolicy = {
       minDelayTarget = 0,
       maxDelayTarget = 0,
-      numRetries = 2,
+      numRetries = 3,
       numMaxDelayRetries = 0,
       numNoDelayRetries = 0,
       numMinDelayRetries = 0,
