@@ -3,6 +3,13 @@ services:
   localstack:
     image: localstack/localstack
     container_name: localstack
+    environment:
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+#    volumes:
+#      - "./volume:/tmp,mode=600"
     ports:
       - "127.0.0.1:4566:4566"
       - "127.0.0.1:4510-4559:4510-4559"
+    tmpfs:
+      - /tmp:exec,mode=600

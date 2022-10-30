@@ -1,0 +1,23 @@
+2022-10-30T21:54:04.144  WARN --- [-functhread5] hypercorn.error            : ASGI Framework Lifespan error, continuing without Lifespan support
+2022-10-30T21:54:04.144  WARN --- [-functhread5] hypercorn.error            : ASGI Framework Lifespan error, continuing without Lifespan support
+2022-10-30T21:54:04.150  INFO --- [-functhread5] hypercorn.error            : Running on https://0.0.0.0:4566 (CTRL + C to quit)
+2022-10-30T21:54:04.150  INFO --- [-functhread5] hypercorn.error            : Running on https://0.0.0.0:4566 (CTRL + C to quit)
+2022-10-30T21:54:07.882  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS sns.CreateTopic => 200
+2022-10-30T21:54:08.609  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS sqs.CreateQueue => 200
+2022-10-30T21:54:09.214  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS sqs.CreateQueue => 200
+2022-10-30T21:54:09.828  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS sqs.GetQueueAttributes => 200
+2022-10-30T21:54:10.438  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS sns.Subscribe => 200
+2022-10-30T21:54:11.054  INFO --- [functhread18] l.services.motoserver      : starting moto server on http://0.0.0.0:48783
+2022-10-30T21:54:11.055  INFO --- [   asgi_gw_0] localstack.services.infra  : Starting mock S3 service on http port 4566 ...
+2022-10-30T21:54:11.146  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS s3.CreateBucket => 200
+2022-10-30T21:54:12.082  INFO --- [   asgi_gw_0] localstack.services.infra  : Starting mock Lambda service on http port 4566 ...
+2022-10-30T21:54:12.695  INFO --- [   asgi_gw_0] localstack.utils.bootstrap : Execution of "require" took 915.09ms
+2022-10-30T21:54:12.728  INFO --- [functhread22] localstack.utils.files     : Updating permissions as file is currently not readable: /tmp/function.zipfile.0684c948/lambda.py
+2022-10-30T21:54:13.216  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS lambda.CreateFunction => 400 (InternalFailure)
+2022-10-30T21:54:13.857  INFO --- [   asgi_gw_1] localstack.request.aws     : AWS lambda.CreateEventSourceMapping => 200
+2022-10-30T21:54:14.448  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS sns.ListTopics => 200
+2022-10-30T21:54:15.018  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS sqs.ListQueues => 200
+2022-10-30T21:54:15.583  INFO --- [   asgi_gw_1] localstack.request.aws     : AWS s3.ListBuckets => 200
+2022-10-30T21:54:16.189  INFO --- [   asgi_gw_1] localstack.request.aws     : AWS lambda.ListFunctions => 200
+2022-10-30T21:54:16.769  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS sns.Publish => 200
+2022-10-30T21:54:17.358  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS s3.ListObjectsV2 => 200

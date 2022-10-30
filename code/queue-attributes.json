@@ -1,0 +1,8 @@
+{
+  "FifoQueue": "true",
+  "ContentBasedDeduplication": "false",
+  "DelaySeconds": "0",
+  "MessageRetentionPeriod": "1209600",
+  "RedrivePolicy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:eu-central-1:000000000000:localstack-lab-sqs-dlq.fifo\",\"maxReceiveCount\":\"3\"}",
+  "VisibilityTimeout": "900"
+}

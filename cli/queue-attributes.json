@@ -1,6 +1,0 @@
-{
-  "RedrivePolicy": "{\"deadLetterTargetArn\":\"http://localhost:4566/000000000000/localstack-lab-sqs-dlq\",\"maxReceiveCount\":\"3\"}",
-  "MessageRetentionPeriod": "259200",
-  "VisibilityTimeout": "900",
-  "DelaySeconds": "0"
-}
