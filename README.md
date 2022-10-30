@@ -4,7 +4,9 @@
 Provisioning AWS resources for your applications/organisation can be complex - Creating the AWS infrastructures (SQS, SNS, Lambda, S3, ...) with a fine grained permissions model - and then try to integrate 
 your infrastructure with your applications will take time until you test to ensure the whole flow is working as expected ...  
 
-
+### PreRequisite:
+* Docker installed
+* Docker-compose binary
 
 ### Starting And Managing Localstack:
 You can set up localstack in different ways - install its binary script that starts a docker container,
@@ -239,13 +241,18 @@ try to send again an event to the SNS, and check the logs of your localstack con
 > awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='test' --message-deduplication-id='1111'  --message file://code/sqs-message.json
 ```
 
-
-
-## Testing AllTogether:
-You can use [this bash script](cli/lunch-stack.sh) to lunch the whole stack along with the AWS resources, you can find all the previous commands there, with an easy-to-use script.
+now double check that the lambda function get triggered by listing the content of our bucket:
 
 ```bash
-> ./cli/./lunch-stack.sh
+> awsls s3 --recursive ls s3://localstack-lab-bucket
+2022-10-30 23:31:45        819 /processed/command-2022_10_30-10_31_45.txt
+```
+
+## Testing AllTogether:
+You can use [this bash script](code/lunch-stack.sh) to lunch the whole stack along with the AWS resources, you can find all the previous commands there, with an easy-to-use script.
+
+```bash
+> ./code/./lunch-stack.sh
 ```
 
 ## LocalStack Limitation:
