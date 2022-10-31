@@ -7,7 +7,7 @@ your infrastructure with your applications will take time until you test it to e
 In This article, we will introduce you Localstack, a cloud service emulator that runs in a single container on your laptop or in your CI environment.
 With LocalStack, you can run your AWS applications or Lambdas entirely on your local machine without connecting to a remote cloud provider
 
-### PreRequisite:
+### Prerequisites:
 * Docker installed.
 * Docker-compose binary.
 * AWS CLI.
@@ -22,7 +22,7 @@ I choose docker because I don't need to install any additional binary into my ma
 ### LocalStack with Docker and AWS CLI:
 You can use [the official docker-compose file from Localstack repo](https://github.com/localstack/localstack/blob/master/docker-compose.yml), you can remove the unnecessary ports - only required for Pro - as we are using the free localstack.
 
-the minimalist docker-compose.yaml [can be found here](./docker/docker-compose.yaml), and in order to lunch the service, just execute the following command - I am running it in the background (-d parameter)
+The minimalistic docker-compose.yaml [can be found here](./docker/docker-compose.yaml), and in order to lunch the service, just execute the following command - I am running it in the background (-d parameter)
 ```bash
 docker compose -f docker/docker-compose.yaml up -d
 ```
@@ -59,37 +59,44 @@ We already lunched localstack container, you can check that the container is up 
 Ready. <- the container is ready to accept requests
 ```
 
-for each aws command, the aws binary will use the specific endpoint for that service -e.g: EC2 endpoint is https://ec2.eu-central-1.awsamazon.com
-we have to override this endpoint in case of localstack, thus we have to specify the --endpoint-url each time you execute the aws command, for that I will create an alias to make life easier to interact with AWS CLI: 
+For each aws command, the aws binary will use the specific endpoint for that service - e.g: EC2 endpoint is https://ec2.eu-central-1.awsamazon.com - we have to override this endpoint in case of Localstack, thus we have to specify the parameter <b>--endpoint-url</b> each time you execute the aws command, for that I will create an alias to make life easier to interact with AWS CLI: 
 ```bash
 alias awsls='aws --endpoint-url http://localhost:4566'
 ```
-I am also setting the AWS PAGER, so that It will send you command result into a pager
+I am also setting the <b>AWS PAGER</b>, so that It will send you command result into a pager:
 ```bash
 export AWS_PAGER=""
 ```
 
 We can check our configuration by listing the topics:
 ```bash
-> awsls sns list-topics
+awsls sns list-topics
+```
+
+And should see this output:
+```
 {
     "Topics": []
 }
 ```
 
 #### Creating Lab Components:
-We will start by creating the SQS queue that will be sitting between the SNS and our lambda, 
+In this section we will create together, our SNS topic, the S3 Bucket, our Lambda function and our SQS queue that will be sitting between the SNS and our Lambda function.
+
+#### 1. Creating the SNS Topic:
+We will start by creating the SNS topic,
 use the following command to create it:
 ```bash
-> awsls sns create-topic --name "localstack-lab-sns.fifo" --attributes FifoTopic=true,ContentBasedDeduplication=false
-{
-    "TopicArn": "arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo"
-}
+awsls sns create-topic --name "localstack-lab-sns.fifo" --attributes FifoTopic=true,ContentBasedDeduplication=false
 ```
 
-Now if you try to list the topics in localstack, you will find the one created in the previous command:
+Now if you try to list the topics in Localstack by typing the previous command:
 ```bash
-> awsls sns list-topics
+awsls sns list-topics
+```
+
+You should see your created SNS topic:
+```
 {
     "Topics": [
         {
@@ -99,17 +106,27 @@ Now if you try to list the topics in localstack, you will find the one created i
 }
 ```
 
-the SNS topic is created, we can create the SQS queue, for that I will start first by creating the dead-letter queue that will back our SQS:
+#### 2. Creating the SQS queue:
+Now, since the SNS topic is created, we can create the SQS queue, for that I will start first by creating the dead-letter queue that will back our SQS:
 ```bash
-> awsls sqs create-queue --queue-name localstack-lab-sqs-dlq.fifo --attributes FifoQueue=true,ContentBasedDeduplication=false,DelaySeconds=0
+awsls sqs create-queue --queue-name localstack-lab-sqs-dlq.fifo --attributes FifoQueue=true,ContentBasedDeduplication=false,DelaySeconds=0
+```
+After executing the SQS queue creation command, you can see something similar to this:
+
+```
 {
     "QueueUrl": "http://localhost:4566/000000000000/localstack-lab-sqs-dlq.fifo"
 }
 ```
 
-The SQS queue will be a fifo queue - a fifo queues don't introduce duplicate message within an interval of 5 minutes, also it guarantees the ordering of the message - for more details check [FIFO queues in the documentation](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html)
+The SQS queue will be a fifo queue - a fifo queue doesn't introduce duplicate messages within an interval of 5 minutes, also it guarantees the ordering of the messages - for more details check [FIFO queues in the documentation](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html).
 ```bash
-> awsls sqs create-queue --queue-name localstack-lab-sqs.fifo --attributes file://code/queue-attributes.json
+awsls sqs create-queue --queue-name localstack-lab-sqs.fifo --attributes file://code/queue-attributes.json
+```
+
+The output should be like this:
+
+```
 {
     "QueueUrl": "http://localhost:4566/000000000000/localstack-lab-sqs.fifo"
 }
@@ -117,7 +134,10 @@ The SQS queue will be a fifo queue - a fifo queues don't introduce duplicate mes
 
 After creating the SNS, SQS, and the SQS DLQ, we need to subscribe SQS to the SNS topic, but for that, we will get the queue arn first:
 ```bash
-> awsls sqs get-queue-attributes --queue-url http://localhost:4566/000000000000/localstack-lab-sqs.fifo --attribute-names All
+awsls sqs get-queue-attributes --queue-url http://localhost:4566/000000000000/localstack-lab-sqs.fifo --attribute-names All
+```
+
+```
 {
     "Attributes": {
         "ApproximateNumberOfMessages": "0",
@@ -141,9 +161,12 @@ After creating the SNS, SQS, and the SQS DLQ, we need to subscribe SQS to the SN
 }
 ```
 
-after getting the SQS arn, we can subscribe the queue to the SNS as follow:
+After getting the SQS Arn, we can subscribe the queue to our SNS topic as follow:
 ```bash
-> awsls sns subscribe --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --protocol sqs --notification-endpoint  arn:aws:sqs:eu-central-1:000000000000:localstack-lab-sqs.fifo
+awsls sns subscribe --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --protocol sqs --notification-endpoint  arn:aws:sqs:eu-central-1:000000000000:localstack-lab-sqs.fifo
+```
+The result you get is similar to this:
+```
 {
     "SubscriptionArn": "arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo:a3be6641-636d-4c23-affe-8aed78b26151"
 }
@@ -151,7 +174,10 @@ after getting the SQS arn, we can subscribe the queue to the SNS as follow:
 
 Now we can test the SQS subscription by publishing a message to the topic, and it must be received it by the SQS: 
 ```bash
-> awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='test' --message-deduplication-id='1111'  --message file://code/sqs-message.json
+awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='test' --message-deduplication-id='1111'  --message file://code/sqs-message.json
+```
+Your message looks like this:
+```
 {
     "MessageId": "babff1a5-993f-42c2-99d5-0551c7f1083d"
 }
@@ -159,7 +185,10 @@ Now we can test the SQS subscription by publishing a message to the topic, and i
 
 Calling the SQS's receive-message to check if we have received the message from the SNS:
 ```bash
-> awsls sqs receive-message --queue-url http://localhost:4566/000000000000/localstack-lab-sqs.fifo
+awsls sqs receive-message --queue-url http://localhost:4566/000000000000/localstack-lab-sqs.fifo
+```
+Your list of messages is like this:
+```
 {
     "Messages": [
         {
@@ -172,30 +201,41 @@ Calling the SQS's receive-message to check if we have received the message from 
 }
 ```
 
-So far, the SNS & SQS integration is working properly - as the messages published to SNS are sent to the SQS. but we need to process the messages by a lambda and moves them to an s3 bucket,
+#### 3. Creating the S3 bucket:
+So far, the SNS & SQS integration is working properly - as the messages published to SNS are sent to the SQS. But we need to process the messages by a lambda and moves them to an s3 bucket,
 so let's create the s3 bucket first:
 ```bash
-> awsls s3 mb s3://localstack-lab-bucket
+awsls s3 mb s3://localstack-lab-bucket
+```
+The output is:
+```
 make_bucket: localstack-lab-bucket
 ```
 
-we can list all the existing s3 buckets in localstack as follows:
+We can list all the existing s3 buckets in localstack as follows:
 ```bash
-> awsls s3 ls
+awsls s3 ls
+```
+
+```
 2022-10-30 08:51:03 localstack-lab-bucket
 ```
 
-the next step is to create a Lambda function that get triggered by the SQS - SQS as source for the lambda function, and saves the messages to a file on S3 bucket.
+#### 4. Creating the Lambda fuction:
+The next step is to create a Lambda function that get triggered by the SQS - SQS as source for the lambda function, and saves the messages to a file on S3 bucket.
 for that, there already a simple [lambda function](./lambda.py) that get triggered whenever a new message is in the SQS.
 We need to zip the script and use it to create lambda function:
 ```bash
 # first step, zip the function handler:
-> zip lambda-handler.zip lambda.py
+zip lambda-handler.zip lambda.py
 ```
-now, we can use that zip file to create our lambda function handler - we are giving the bucket where to put the messages as an env var:
+Now, we can use that zip file to create our lambda function handler - we are giving the bucket where to put the messages as an env var:
 ```bash
 # create the lambda
-> awsls lambda create-function --function-name queue-reader --zip-file fileb://lambda-handler.zip --handler lambda.lambda_handler --runtime python3.8 --role arn:aws:iam::000000000000:role/fake-role-role --environment Variables={bucket_name=localstack-lab-bucket}
+awsls lambda create-function --function-name queue-reader --zip-file fileb://lambda-handler.zip --handler lambda.lambda_handler --runtime python3.8 --role arn:aws:iam::000000000000:role/fake-role-role --environment Variables={bucket_name=localstack-lab-bucket}
+```
+After executing the previous command, the show output is similar to this:
+```
 {
     "FunctionName": "queue-reader",
     "FunctionArn": "arn:aws:lambda:eu-central-1:000000000000:function:queue-reader",
@@ -227,13 +267,15 @@ now, we can use that zip file to create our lambda function handler - we are giv
 }
 ```
 
-```
-NOTE: In the previous command - while creating the lambda function, we are using a fake role that we did not create. we will discuss this point in the limitation section of localstack.
-```
+>NOTE: In the previous command - while creating the lambda function, we are using a fake role that we did not create. we will discuss this point in the limitation section of Localstack.
 
-Now the lambda function is created, but it won't do anything, as still it is not using the SQS as source. to do so, we need to create a mapping between an event source and the Lambda function like follow:
+Now the lambda function is created, but it won't do anything, as it is not using yet the SQS as source. To do so, we need to create a mapping between an event source and the Lambda function like follow:
+
 ```bash
-> awsls lambda create-event-source-mapping --function-name queue-reader --batch-size 5 --maximum-batching-window-in-seconds 60  --event-source-arn arn:aws:sqs:eu-central-1:000000000000:localstack-lab-sqs.fifo
+awsls lambda create-event-source-mapping --function-name queue-reader --batch-size 5 --maximum-batching-window-in-seconds 60  --event-source-arn arn:aws:sqs:eu-central-1:000000000000:localstack-lab-sqs.fifo
+```
+This will be shown after executing the previous command:
+```
 {
     "UUID": "81ecc36a-c054-4e7f-8018-4586f39afea3",
     "StartingPosition": "LATEST",
@@ -250,14 +292,17 @@ Now the lambda function is created, but it won't do anything, as still it is not
 }
 ```
 
-try to send again an event to the SNS, and check the logs of your localstack container to see if there are any error in the logs:
+Try to send again an event to the SNS, and check the logs of your localstack container to see if there are any error in the logs:
 ```bash
-> awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='test' --message-deduplication-id='$(uuidgen)'  --message file://code/sqs-message.json
+awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='test' --message-deduplication-id='$(uuidgen)'  --message file://code/sqs-message.json
 ```
 
-you can check your localstack logs and see the logs of our lambda function using:
+You can check your localstack logs and see the logs of our lambda function using:
 ```bash
-> docker container logs localstack
+docker container logs localstack
+```
+These are your logs:
+```
 ...
 2022-10-31T00:55:24.364 DEBUG --- [functhread24] l.u.c.docker_sdk_client    : Creating container with attributes: {'mount_volumes': None, 'ports': <PortMappings: {}>, 'cap_add': None, 'cap_drop': None, 'security_opt': None, 'dns': '', 'additional_flags': '', 'workdir': None, 'privileged': None, 'command': 'lambda.lambda_handler', 'detach': False, 'entrypoint': None, 'env_vars': {'bucket_name': 'localstack-lab-bucket', 'AWS_ACCESS_KEY_ID': 'test', 'AWS_SECRET_ACCESS_KEY': 'test', 'AWS_REGION': 'eu-central-1', 'DOCKER_LAMBDA_USE_STDIN': '1', 'LOCALSTACK_HOSTNAME': 'localhost', 'EDGE_PORT': '4566', '_HANDLER': 'lambda.lambda_handler', 'AWS_LAMBDA_FUNCTION_TIMEOUT': '3', 'AWS_LAMBDA_FUNCTION_NAME': 'queue-reader', 'AWS_LAMBDA_FUNCTION_VERSION': '$LATEST', 'AWS_LAMBDA_FUNCTION_INVOKED_ARN': 'arn:aws:lambda:eu-central-1:000000000000:function:queue-reader'}, 'image_name': 'lambci/lambda:python3.8', 'interactive': True, 'name': None, 'network': 'bridge', 'remove': True, 'self': <localstack.utils.container_utils.docker_sdk_client.SdkDockerClient object at 0xffff820b5840>, 'tty': False, 'user': None}
 2022-10-31T00:55:24.396 DEBUG --- [functhread24] l.u.c.docker_sdk_client    : Copying file /tmp/function.zipfile.f12211f2/. into 291fe50aefb293d9af82a9ccdfbd37a1f306f8ee5d2e81cb7e2812208666b6c0:/var/task
@@ -272,12 +317,15 @@ you can check your localstack logs and see the logs of our lambda function using
 > END RequestId: 348977e4-69d1-145b-7420-243d8f8c0451
 > REPORT RequestId: 348977e4-69d1-145b-7420-243d8f8c0451	Init Duration: 1812.98 ms	Duration: 117.60 ms	Billed Duration: 118 ms	Memory Size: 1536 MB	Max Memory Used: 100 MB
 ```
-from the logs output, the lambda function was triggered, and lunched in a separate container - outside localstack container - and was run successfully.
+From the log output, the lambda function was triggered, and lunched in a separate container - outside localstack container - and was run successfully.
 
-you also double-check that the lambda function already write to the s3 bucket by listing the content of our bucket:
+You can also double-check that the lambda function already write to the s3 bucket by listing the content of our bucket:
 
 ```bash
-> awsls s3 --recursive ls s3://localstack-lab-bucket
+awsls s3 --recursive ls s3://localstack-lab-bucket
+```
+
+```
 2022-10-30 23:31:45        819 /processed/command-2022_10_30-10_31_45.txt
 ```
 
@@ -285,16 +333,22 @@ you also double-check that the lambda function already write to the s3 bucket by
 You can use [this bash script](code/lunch-stack.sh) to lunch the whole stack along with the AWS resources, you can find all the previous commands there, with an easy-to-use script.
 
 ```bash
-> ./code/./lunch-stack.sh
+./code/./lunch-stack.sh
 ```
 
 ## LocalStack Limitation:
-So far, LocalStack does not enforce/validate the IAM policies, so don't rely on Localstack to test  your IAM policies and roles... they are providing a pro version - $28/month - that provide this feature
-of validating and enforcing IAM permissions - Even if you add the ENFORCE_IAM flag to docker-compose stack, it will not work.
+So far, LocalStack does not enforce/validate the IAM policies, so don't rely on Localstack to test your IAM policies and roles. And even if you add the ENFORCE_IAM flag to docker-compose stack, it will not work.
 
-There also another limitation that we did not face while building our infrastructure using localstack, as our lambda was function that is written in python,
-we were able to run it in docker mode - LocalStack with Docker and AWS CLI section. but in case your lambda was written using any JVM language, you will not be able to run it,
-because only the local executor with locally launched LocalStack can be used together with JVM Lambda Functions
+They are providing a Pro version - $28/month - that provides the feature
+of validating and enforcing IAM permissions.
 
-for full list of Localstack limitations [check the official documentation](https://docs.localstack.cloud/localstack/limitations/)
+There is also another limitation that we did not face while building our infrastructure using Localstack, since our lambda function is written in Python,
+we were able to run it in Docker mode (LocalStack with Docker and AWS CLI section) but in case your lambda was written using any JVM language, you will not be able to run it,
+because only the local executor with locally launched LocalStack can be used together with JVM Lambda Functions.
+
+To get deep dive on the Localstack limitations topic you can check [the official documentation](https://docs.localstack.cloud/localstack/limitations/).
+
+Thank your for reading.
+
+P.S: Feel free to create a pull request to fi or add anything that you may think could be improve this article. 
 
