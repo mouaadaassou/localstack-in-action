@@ -250,7 +250,7 @@ Now the lambda function is created, but it won't do anything, as still it is not
 }
 ```
 
-try to send again an event to the SNS, and check the logs of your localstack container to see if there are any error in the logs:
+now, try to send again an event to the SNS, and check the logs of your localstack container to see if there are any error in the logs:
 ```bash
 > awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='test' --message-deduplication-id='$(uuidgen)'  --message file://code/sqs-message.json
 ```
