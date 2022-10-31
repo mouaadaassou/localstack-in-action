@@ -40,7 +40,7 @@ you can check this section on lambda execution mode from [the official documenta
 ## LocalStack Lab:
 ### Scenario:
 In This Lab, We will create an SNS that has an SQS subscribed to it, and a Lambda that starts listens on that SQS, and then process the message and upload it to an S3. 
-the lab will use AWS CLI to provision the infrastructure as a first option, then, we will try to do the same using terraform to create all these resources on both environments - local - using localstack, and on AWS.
+the lab will use AWS CLI to provision the infrastructure as a first option.
 
 ![SNS-SQS-Lambda-S3-Scenario](./img/scenario.png)
 
