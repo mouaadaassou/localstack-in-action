@@ -17,7 +17,6 @@ def lambda_handler(event, context):
         bodyContent = record['body']
         date = datetime.now().strftime("%Y_%m_%d-%I_%M_%S")
         file_name = 'processed/message-' + date + '.json'
-        print("lambda url: ", url, " - os.environ = ", os.environ['LOCALSTACK_HOSTNAME'])
         object = s3.Object(BUCKET_NAME, file_name)
         object.put(Body=bodyContent)
     print("Job Ended  ...!")
