@@ -6,7 +6,7 @@ alias awsls='aws --endpoint-url http://localhost:4566'
 printf "\n\n#############################\n"
 printf "### SNS-SQS-Lambda-S3 Lab ###\n"
 printf "#############################\n"
-printf "Do you want to lunch the stack or destroy it:\n\t * PRESS 1\n\t * PRESS 2\nOption to Select: "
+printf "What do you would like to do?\n\t * Press 1 to lunch the Stack\n\t * Press 2 to destroy the stack\nOption to Select: "
 read STACK_STATE
 
 function creatingAwsLocalstackComponents() {
