@@ -6,10 +6,10 @@ services:
     environment:
       - DEBUG=1
       - DATA_DIR=/tmp/localstack/data
-#    volumes:
-#      - "./volume:/tmp,mode=600"
+      - LAMBDA_EXECUTOR=docker
+      - LAMBDA_DOCKER_NETWORK=bridge
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
       - "127.0.0.1:4566:4566"
       - "127.0.0.1:4510-4559:4510-4559"
-    tmpfs:
-      - /tmp:exec,mode=600

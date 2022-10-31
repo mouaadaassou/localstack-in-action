@@ -38,8 +38,11 @@ function creatingAwsLocalstackComponents() {
   awsls lambda list-functions
   printf "\n\n##Testing The Whole Flow ##\n\n"
   printf "\nSending an events to SNS\n"
-  awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='test' --message-deduplication-id='1111'  --message file://code/sqs-message.json
+  awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='lab' --message-deduplication-id='$(uuidgen)'  --message file://code/sqs-message.json
   printf "\nChecking that the SNS message is written to the S3 bucket\n"
+  while [[ -z $(awsls s3 ls --recursive s3://localstack-lab-bucket) ]]; do
+    sleep 1
+  done
   awsls s3 ls --recursive s3://localstack-lab-bucket
 }
 

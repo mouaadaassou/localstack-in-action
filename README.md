@@ -2,11 +2,15 @@
 
 ## Introduction:
 Provisioning AWS resources for your applications/organisation can be complex - Creating the AWS infrastructures (SQS, SNS, Lambda, S3, ...) with a fine grained permissions model - and then try to integrate 
-your infrastructure with your applications will take time until you test to ensure the whole flow is working as expected ...  
+your infrastructure with your applications will take time until you test it to ensure the whole flow is working as expected ...
+
+In This article, we will introduce you Localstack, a cloud service emulator that runs in a single container on your laptop or in your CI environment.
+With LocalStack, you can run your AWS applications or Lambdas entirely on your local machine without connecting to a remote cloud provider
 
 ### PreRequisite:
-* Docker installed
-* Docker-compose binary
+* Docker installed.
+* Docker-compose binary.
+* AWS CLI.
 
 ### Starting And Managing Localstack:
 You can set up localstack in different ways - install its binary script that starts a docker container,
@@ -22,6 +26,16 @@ the minimalist docker-compose.yaml [can be found here](./docker/docker-compose.y
 ```bash
 docker compose -f docker/docker-compose.yaml up -d
 ```
+
+As you might notice, I am mounting my Docker daemon - socket - into the localstack container, the reason why I am doing that, is because localstack can run lambda functions in 3 modes.
+the first mode is ***local***, in this mode, localstack will execute your lambda in the same container as localstack - meaning that all functions will share the same environment, the advantage with this mode is that,
+the execution time is less than the other modes - docker mode.
+
+The other mode is ***docker*** mode, in this mode, each lambda invocation will spin up a new container where it will be executed,
+do so, each lambda will have a new, clean environment - unlike local mode where all lambdas will share the same environment - but this advantage come at cost that the execution time
+will be more than the other mode. also this mode requires mounting the docker socket to be mounted so that the localstack container can lunch other containers as well.
+
+you can check this section on lambda execution mode from [the official documentation](https://docs.localstack.cloud/localstack/lambda-executors/)
 
 ## LocalStack Lab:
 ### Scenario:
@@ -39,7 +53,7 @@ We already lunched localstack container, you can check that the container is up 
 ...
 2022-10-30T19:01:14.628  WARN --- [-functhread5] hypercorn.error            : ASGI Framework Lifespan error, continuing without Lifespan support
 2022-10-30T19:01:14.628  WARN --- [-functhread5] hypercorn.error            : ASGI Framework Lifespan error, continuing without Lifespan support
-2022-10-30 19:01:14,629 INFO success: infra entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2022-10-30 19:01:14,629  INFO success: infra entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
 2022-10-30T19:01:14.630  INFO --- [-functhread5] hypercorn.error            : Running on https://0.0.0.0:4566 (CTRL + C to quit)
 2022-10-30T19:01:14.630  INFO --- [-functhread5] hypercorn.error            : Running on https://0.0.0.0:4566 (CTRL + C to quit)
 Ready. <- the container is ready to accept requests
@@ -238,10 +252,29 @@ Now the lambda function is created, but it won't do anything, as still it is not
 
 try to send again an event to the SNS, and check the logs of your localstack container to see if there are any error in the logs:
 ```bash
-> awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='test' --message-deduplication-id='1111'  --message file://code/sqs-message.json
+> awsls sns publish --topic-arn arn:aws:sns:eu-central-1:000000000000:localstack-lab-sns.fifo --message-group-id='test' --message-deduplication-id='$(uuidgen)'  --message file://code/sqs-message.json
 ```
 
-now double check that the lambda function get triggered by listing the content of our bucket:
+you can check your localstack logs and see the logs of our lambda function using:
+```bash
+> docker container logs localstack
+...
+2022-10-31T00:55:24.364 DEBUG --- [functhread24] l.u.c.docker_sdk_client    : Creating container with attributes: {'mount_volumes': None, 'ports': <PortMappings: {}>, 'cap_add': None, 'cap_drop': None, 'security_opt': None, 'dns': '', 'additional_flags': '', 'workdir': None, 'privileged': None, 'command': 'lambda.lambda_handler', 'detach': False, 'entrypoint': None, 'env_vars': {'bucket_name': 'localstack-lab-bucket', 'AWS_ACCESS_KEY_ID': 'test', 'AWS_SECRET_ACCESS_KEY': 'test', 'AWS_REGION': 'eu-central-1', 'DOCKER_LAMBDA_USE_STDIN': '1', 'LOCALSTACK_HOSTNAME': 'localhost', 'EDGE_PORT': '4566', '_HANDLER': 'lambda.lambda_handler', 'AWS_LAMBDA_FUNCTION_TIMEOUT': '3', 'AWS_LAMBDA_FUNCTION_NAME': 'queue-reader', 'AWS_LAMBDA_FUNCTION_VERSION': '$LATEST', 'AWS_LAMBDA_FUNCTION_INVOKED_ARN': 'arn:aws:lambda:eu-central-1:000000000000:function:queue-reader'}, 'image_name': 'lambci/lambda:python3.8', 'interactive': True, 'name': None, 'network': 'bridge', 'remove': True, 'self': <localstack.utils.container_utils.docker_sdk_client.SdkDockerClient object at 0xffff820b5840>, 'tty': False, 'user': None}
+2022-10-31T00:55:24.396 DEBUG --- [functhread24] l.u.c.docker_sdk_client    : Copying file /tmp/function.zipfile.f12211f2/. into 291fe50aefb293d9af82a9ccdfbd37a1f306f8ee5d2e81cb7e2812208666b6c0:/var/task
+2022-10-31T00:55:24.525 DEBUG --- [functhread24] l.u.c.docker_sdk_client    : Starting container 291fe50aefb293d9af82a9ccdfbd37a1f306f8ee5d2e81cb7e2812208666b6c0
+2022-10-31T00:55:24.602  INFO --- [   asgi_gw_0] localstack.request.aws     : AWS s3.ListObjectsV2 => 200
+2022-10-31T00:55:26.677  INFO --- [   asgi_gw_1] localstack.request.aws     : AWS s3.PutObject => 200
+2022-10-31T00:55:26.843 DEBUG --- [functhread24] l.s.a.lambda_executors     : Lambda arn:aws:lambda:eu-central-1:000000000000:function:queue-reader result / log output:
+{"statusCode":200}
+>START RequestId: 348977e4-69d1-145b-7420-243d8f8c0451 Version: $LATEST
+> Job Started...!
+> Job Ended  ...!
+> END RequestId: 348977e4-69d1-145b-7420-243d8f8c0451
+> REPORT RequestId: 348977e4-69d1-145b-7420-243d8f8c0451	Init Duration: 1812.98 ms	Duration: 117.60 ms	Billed Duration: 118 ms	Memory Size: 1536 MB	Max Memory Used: 100 MB
+```
+from the logs output, the lambda function was triggered, and lunched in a separate container - outside localstack container - and was run successfully.
+
+you also double-check that the lambda function already write to the s3 bucket by listing the content of our bucket:
 
 ```bash
 > awsls s3 --recursive ls s3://localstack-lab-bucket
@@ -256,5 +289,12 @@ You can use [this bash script](code/lunch-stack.sh) to lunch the whole stack alo
 ```
 
 ## LocalStack Limitation:
-So far, LocalStack does not enforce/validate the IAM policies, so don't rely on Localstack to test  your IAM policies and roles... they are providing a pro/enterprise version - 24$/month - that provide this feature
+So far, LocalStack does not enforce/validate the IAM policies, so don't rely on Localstack to test  your IAM policies and roles... they are providing a pro version - $28/month - that provide this feature
 of validating and enforcing IAM permissions - Even if you add the ENFORCE_IAM flag to docker-compose stack, it will not work.
+
+There also another limitation that we did not face while building our infrastructure using localstack, as our lambda was function that is written in python,
+we were able to run it in docker mode - LocalStack with Docker and AWS CLI section. but in case your lambda was written using any JVM language, you will not be able to run it,
+because only the local executor with locally launched LocalStack can be used together with JVM Lambda Functions
+
+for full list of Localstack limitations [check the official documentation](https://docs.localstack.cloud/localstack/limitations/)
+
