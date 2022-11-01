@@ -6,8 +6,10 @@ services:
     environment:
       - DEBUG=1
       - DATA_DIR=/tmp/localstack/data
+      - DEFAULT_REGION=eu-central-1
+      - EDGE_PORT=4566
       - LAMBDA_EXECUTOR=docker
-      - LAMBDA_DOCKER_NETWORK=bridge
+      - LOCALSTACK_HOSTNAME=localstack
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
